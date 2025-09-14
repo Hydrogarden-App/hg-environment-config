@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  hg-mysql:
+    image: 10.8.0.1:5000/hg-mysql:latest
+    env_file:
+      - .env.mysql
+    container_name: ${MYSQL_CONTAINER}
+    restart: always
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - hg-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+
+  hg-rabbitmq:
+    image: 10.8.0.1:5000/hg-rabbitmq:latest
+    env_file:
+      - .env.rabbitmq
+    ports:
+      - "${RABBITMQ_AMQP_PORT}:5672"
+      - "${RABBITMQ_HTTP_PORT}:15672"
+      - "${RABBITMQ_MQTT_PORT}:1883"
+    container_name: ${RABBITMQ_CONTAINER}
+    hostname: hg-rabbitmq
+    volumes:
+      - hg-rabbitmq-data:/var/lib/rabbitmq
+      - ./logs/hg_rabbitmq:/var/log/rabbitmq
+
+  hg-backend:
+    image: 10.8.0.1:5000/hg-backend:latest
+    env_file:
+      - .env.hg-backend
+    ports:
+      - "${BACKEND_PORT}:8080"
+    container_name: ${BACKEND_CONTAINER}
+    hostname: hg-backend
+    volumes:
+      - ./logs/hg_backend:/app/logs
+    depends_on:
+      hg-mysql:
+        condition: service_healthy
+      hg-rabbitmq:
+        condition: service_started
+
+  hg-frontend:
+    image: 10.8.0.1:5000/hg-frontend:latest
+    env_file:
+      - .env.frontend
+    ports:
+      - "${FRONTEND_PORT}:80"
+    container_name: ${FRONTEND_CONTAINER}
+    hostname: hg-frontend
+    volumes:
+      - ./logs/hg_frontend:/usr/local/apache2/logs
+
+volumes:
+  hg-mysql-data:
+  hg-rabbitmq-data:

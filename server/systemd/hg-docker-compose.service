@@ -1,0 +1,16 @@
+[Unit]
+Description=Hydrogarden Production Docker Compose Stack
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/hydrogarden/docker
+ExecStart=/opt/hydrogarden/systemd/hydrogarden-service-start.sh
+ExecStop=/opt/hydrogarden/systemd/hydrogarden-service-stop.sh
+User=hydrogarden
+Group=hydrogarden
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
