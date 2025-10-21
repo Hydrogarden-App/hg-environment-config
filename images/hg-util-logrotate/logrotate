@@ -1,0 +1,38 @@
+/hg-logs/hg-mysql/*.log {
+  size 200M
+  rotate 90
+  compress
+  missingok
+  notifempty
+  create 777 root root
+  endscript
+}
+
+/hg-logs/hg-backend/*.log {
+  size 200M
+  rotate 90
+  compress
+  missingok
+  notifempty
+  create 777 root root
+}
+
+/hg-logs/hg-nginx/*.log {
+  size 200M
+  rotate 90
+  compress
+  missingok
+  notifempty
+  create 777 root root
+  endscript
+}
+
+/hg-logs/hg-rabbitmq/*.log {
+  size 200M
+  rotate 90
+  compress
+  missingok
+  notifempty
+  create 777 root root
+  endscript
+}

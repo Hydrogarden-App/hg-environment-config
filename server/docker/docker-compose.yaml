@@ -1,63 +1,103 @@
-version: "3.9"
-
+name: hydrogarden
 services:
   hg-mysql:
-    image: 10.8.0.1:5000/hg-mysql:latest
+    image: hg-mysql:latest
     env_file:
       - .env.mysql
-    container_name: ${MYSQL_CONTAINER}
-    restart: always
+    container_name: hg-mysql
+    restart: unless-stopped
     ports:
-      - "${MYSQL_PORT}:3306"
+      - "3306:3306"
     volumes:
       - hg-mysql-data:/var/lib/mysql
+      - hg-logs:/hg-logs
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "healthcheck" ]
       interval: 10s
       retries: 5
       start_period: 10s
 
   hg-rabbitmq:
-    image: 10.8.0.1:5000/hg-rabbitmq:latest
+    image: hg-rabbitmq:latest
+    restart: unless-stopped
     env_file:
       - .env.rabbitmq
     ports:
-      - "${RABBITMQ_AMQP_PORT}:5672"
-      - "${RABBITMQ_HTTP_PORT}:15672"
-      - "${RABBITMQ_MQTT_PORT}:1883"
-    container_name: ${RABBITMQ_CONTAINER}
+      - "5672:5672"
+      - "15672:15672"
+      - "1883:1883"
+    container_name: hg-rabbitmq
     hostname: hg-rabbitmq
     volumes:
       - hg-rabbitmq-data:/var/lib/rabbitmq
-      - ./logs/hg_rabbitmq:/var/log/rabbitmq
+      - hg-logs:/hg-logs
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      start_period: 10s
+      timeout: 60s
 
   hg-backend:
-    image: 10.8.0.1:5000/hg-backend:latest
+    image: hg-backend:latest
+    restart: unless-stopped
     env_file:
       - .env.hg-backend
-    ports:
-      - "${BACKEND_PORT}:8080"
-    container_name: ${BACKEND_CONTAINER}
+    container_name: hg-backend
     hostname: hg-backend
+    ports:
+      - "8081:8081"
+      - "5005:5005"
     volumes:
-      - ./logs/hg_backend:/app/logs
+      - hg-logs:/app/hg-logs
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:8081/hg-backend/actuator/health"]
+      interval: 5s
+      start_period: 10s
+      timeout: 60s
     depends_on:
       hg-mysql:
         condition: service_healthy
       hg-rabbitmq:
         condition: service_started
 
-  hg-frontend:
-    image: 10.8.0.1:5000/hg-frontend:latest
+  hg-webclient:
+    image: hg-webclient:latest
+    restart: unless-stopped
     env_file:
-      - .env.frontend
+      - .env.webclient
+    container_name: hg-webclient
     ports:
-      - "${FRONTEND_PORT}:80"
-    container_name: ${FRONTEND_CONTAINER}
-    hostname: hg-frontend
+      - "3000:3000"
+    hostname: hg-webclient
+    healthcheck:
+      test: ["CMD-SHELL", "wget http://127.0.0.1:3000/ -O /dev/null"]
+      interval: 5s
+      start_period: 10s
+      timeout: 60s
     volumes:
-      - ./logs/hg_frontend:/usr/local/apache2/logs
+      - hg-logs:/hg-logs
+  hg-nginx:
+    image: hg-nginx:latest
+    restart: unless-stopped
+    container_name: hg-nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - hg-backend
+      - hg-webclient
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80/internal/healthcheck" ]
+      interval: 5s
+      start_period: 10s
+      timeout: 60s
+  hg-util-logrotate:
+    image: hg-util-logrotate:latest
+    container_name: hg-util-logrotate
+    volumes:
+      - hg-logs:/hg-logs
+
 
 volumes:
   hg-mysql-data:
   hg-rabbitmq-data:
+  hg-logs:

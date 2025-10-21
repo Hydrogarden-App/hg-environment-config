@@ -3,7 +3,7 @@
 DB_NAME="hg-backend"
 NEW_USER="hg-backend"
 NEW_USER_PASSWORD="hg-backend"
-HOST="10.8.0.1"
+HOST="localhost"
 MYSQL_USER="root"
 PASSWORD="root"
 
