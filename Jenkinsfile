@@ -12,7 +12,7 @@ pipeline {
                                 branches: [[name: '*/main']],
                                 userRemoteConfigs: [[
                                     url: 'https://github.com/Hydrogarden-App/hg-environment-config.git',
-                                    credentialsId: 'hydrogarden-app-jenkers'
+                                    credentialsId: 'jenkins-hydrogarden-girhub-app'
                                 ]]
                             ])
                         }
